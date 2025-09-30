@@ -297,7 +297,9 @@ function PropertyDetails() {
         ))}
       </div>
       <p className="mt-4">{property.description}</p>
-      <div className="mt-2 font-bold">{currency(property.pricePerNight)} / night</div>
+      <div className="mt-2 font-bold">
+        {currency(property.pricePerNight)} / night
+      </div>
       <button
         onClick={() => navigate(`/booking/${property.id}`)}
         className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
@@ -363,7 +365,9 @@ function ConfirmationPage() {
 
   return (
     <main className="mx-auto max-w-2xl p-6 text-center">
-      <h1 className="text-2xl font-bold text-green-600">Booking Confirmed 🎉</h1>
+      <h1 className="text-2xl font-bold text-green-600">
+        Booking Confirmed 🎉
+      </h1>
       <p className="mt-2">
         You booked <strong>{property.name}</strong> in {property.location}.
       </p>
@@ -385,14 +389,33 @@ function ConfirmationPage() {
 }
 
 // ------------------------- Placeholders -------------------------
+function ComingSoon({ title }: { title: string }) {
+  return (
+    <main className="flex min-h-[60vh] items-center justify-center">
+      <div className="rounded-lg border bg-white p-8 text-center shadow">
+        <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
+        <p className="mt-2 text-gray-600">
+          🚧 This feature is under development. Stay tuned!
+        </p>
+        <Link
+          to="/"
+          className="mt-6 inline-block rounded bg-indigo-600 px-4 py-2 text-white"
+        >
+          Back Home
+        </Link>
+      </div>
+    </main>
+  );
+}
+
 function LoginPage() {
-  return <div className="p-6">Login Page (coming soon)</div>;
+  return <ComingSoon title="Login Page" />;
 }
 function DashboardPage() {
-  return <div className="p-6">User Dashboard (coming soon)</div>;
+  return <ComingSoon title="User Dashboard" />;
 }
 function AdminDashboard() {
-  return <div className="p-6">Admin Dashboard (coming soon)</div>;
+  return <ComingSoon title="Admin Dashboard" />;
 }
 
 // ------------------------- Root App -------------------------
