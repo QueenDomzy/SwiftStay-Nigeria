@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";  // ✅ This must match the file in src/
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+ReactDOM.createRoot(document.getElementById("root")HTMLElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
