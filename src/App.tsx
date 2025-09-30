@@ -279,6 +279,40 @@ function PropertiesPage() {
   );
 }
 
+// ------------------------- Property Details Page -------------------------
+function PropertyDetails() {
+  const { id } = useParams();
+  const property = sampleProperties.find((p) => p.id === id);
+
+  if (!property) return <div className="p-6">Property not found</div>;
+
+  return (
+    <main className="mx-auto max-w-4xl p-6">
+      <h1 className="text-2xl font-bold">{property.name}</h1>
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        {property.images.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={property.name}
+            className="h-64 w-full rounded object-cover"
+          />
+        ))}
+      </div>
+      <p className="mt-4">{property.description}</p>
+      <div className="mt-2 font-semibold">
+        Price per night: {currency(property.pricePerNight)}
+      </div>
+      <button
+        onClick={() => (window.location.href = `/booking/${property.id}`)}
+        className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
+      >
+        Book Now
+      </button>
+    </main>
+  );
+}
+
 // ------------------------- Booking Page -------------------------
 function BookingPage() {
   const { id } = useParams();
@@ -316,10 +350,7 @@ function BookingPage() {
   );
 }
 
-// ------------------------- Placeholders for other pages -------------------------
-function PropertiesPage() {
-  return <div className="p-6">Properties Listing (coming soon)</div>;
-}
+// ------------------------- Placeholders -------------------------
 function LoginPage() {
   return <div className="p-6">Login Page (coming soon)</div>;
 }
@@ -349,4 +380,4 @@ export default function App() {
       </div>
     </BrowserRouter>
   );
-    }
+}
