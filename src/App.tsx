@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -31,8 +31,7 @@ const sampleProperties = [
     pricePerNight: 12000,
     type: "Apartment",
     images: ["https://source.unsplash.com/800x600/?apartment,nigeria"],
-    description:
-      "Modern 2-bedroom apartment in Awka, perfect for short stays.",
+    description: "Modern 2-bedroom apartment in Awka, perfect for short stays.",
     ownerId: "owner-2",
   },
   {
@@ -127,6 +126,7 @@ function Header() {
   );
 }
 
+// ------------------------- Home Page -------------------------
 function Home() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -156,7 +156,12 @@ function Home() {
               >
                 Explore Prototype
               </button>
-              <button className="rounded border px-4 py-2">Book a Stay</button>
+              <button
+                onClick={() => navigate("/properties")}
+                className="rounded border px-4 py-2"
+              >
+                Book a Stay
+              </button>
             </div>
           </div>
           <form
@@ -222,9 +227,108 @@ function Home() {
   );
 }
 
-// Other pages (PropertiesPage, PropertyDetails, BookingPage, LoginPage,
-// Dashboard, AdminDashboard) remain same as in your draft, with the fixes we discussed
-// (backticks for template strings, alt={p.name}, onAdd with backticks, etc).
+// ------------------------- Properties Listing Page -------------------------
+function PropertiesPage() {
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const query = searchParams.get("q")?.toLowerCase() || "";
+  const maxPrice = Number(searchParams.get("maxPrice")) || Infinity;
+
+  const filtered = sampleProperties.filter((p) => {
+    const matchesQuery =
+      p.name.toLowerCase().includes(query) ||
+      p.location.toLowerCase().includes(query);
+    const matchesPrice = p.pricePerNight <= maxPrice;
+    return matchesQuery && matchesPrice;
+  });
+
+  return (
+    <main className="mx-auto max-w-6xl p-6">
+      <h1 className="text-2xl font-bold">Available Properties</h1>
+      {filtered.length === 0 ? (
+        <p className="mt-4 text-gray-600">No properties found.</p>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((p) => (
+            <article key={p.id} className="rounded border p-3">
+              <img
+                src={p.images[0]}
+                alt={p.name}
+                className="h-40 w-full rounded object-cover"
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">{p.name}</h3>
+                  <div className="text-sm text-gray-500">{p.location}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold">{currency(p.pricePerNight)}</div>
+                  <button
+                    onClick={() => navigate(`/property/${p.id}`)}
+                    className="mt-2 rounded bg-indigo-600 px-3 py-1 text-sm text-white"
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}
+
+// ------------------------- Booking Page -------------------------
+function BookingPage() {
+  const { id } = useParams();
+  const property = sampleProperties.find((p) => p.id === id);
+
+  if (!property) return <div className="p-6">Booking not available</div>;
+
+  return (
+    <main className="mx-auto max-w-2xl p-6">
+      <h1 className="text-xl font-bold">Book {property.name}</h1>
+      <form className="mt-4 space-y-4">
+        <div>
+          <label className="block text-sm">Check-in</label>
+          <input type="date" className="w-full rounded border p-2" />
+        </div>
+        <div>
+          <label className="block text-sm">Check-out</label>
+          <input type="date" className="w-full rounded border p-2" />
+        </div>
+        <div>
+          <label className="block text-sm">Guests</label>
+          <input type="number" className="w-full rounded border p-2" min="1" />
+        </div>
+        <div className="font-semibold">
+          Price per night: {currency(property.pricePerNight)}
+        </div>
+        <button
+          type="submit"
+          className="rounded bg-green-600 px-4 py-2 text-white"
+        >
+          Confirm Booking
+        </button>
+      </form>
+    </main>
+  );
+}
+
+// ------------------------- Placeholders for other pages -------------------------
+function PropertiesPage() {
+  return <div className="p-6">Properties Listing (coming soon)</div>;
+}
+function LoginPage() {
+  return <div className="p-6">Login Page (coming soon)</div>;
+}
+function DashboardPage() {
+  return <div className="p-6">User Dashboard (coming soon)</div>;
+}
+function AdminDashboard() {
+  return <div className="p-6">Admin Dashboard (coming soon)</div>;
+}
 
 // ------------------------- Root App -------------------------
 export default function App() {
@@ -234,10 +338,15 @@ export default function App() {
         <Header />
         <Routes>
           <Route path="/" element={<Home />} />
-          {/* Add the rest of your routes here */}
+          <Route path="/properties" element={<PropertiesPage />} />
+          <Route path="/property/:id" element={<PropertyDetails />} />
+          <Route path="/booking/:id" element={<BookingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
         <SwiftBot />
       </div>
     </BrowserRouter>
   );
-}
+    }
