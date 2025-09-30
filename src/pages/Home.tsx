@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <div>
       <section className="hero">
-        <h1>💼 From busy cities to quiet towns, SwiftStay will connect Nigeria—one stay at a time.</h1>
+        <h1>💼 From busy cities to quiet towns, SwiftStay connects Nigeria — one stay at a time.</h1>
         <button>Explore Prototype</button>
         <button>Book a Stay</button>
       </section>
