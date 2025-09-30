@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -6,7 +6,18 @@ import {
   Link,
   useNavigate,
   useParams,
+  Navigate,
 } from "react-router-dom";
+import { auth } from "./firebase";
+import {
+  onAuthStateChanged,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  User,
+} from "firebase/auth";
 
 // ------------------------- Sample data -------------------------
 const properties = [
@@ -16,10 +27,7 @@ const properties = [
     location: "Enugu, Enugu State",
     pricePerNight: 15000,
     type: "Hotel",
-    images: [
-      "https://source.unsplash.com/800x600/?hotel,Enugu",
-      "https://source.unsplash.com/800x600/?hotel,interior",
-    ],
+    images: ["https://source.unsplash.com/800x600/?hotel,Enugu"],
     description:
       "Comfortable stay near the city center. Fast wifi, breakfast included, airport shuttle available.",
     ownerId: "owner-1",
@@ -67,15 +75,6 @@ function SwiftBot() {
           <div className="mt-2 text-sm">
             Hi — I can help with search, bookings & FAQs. (Prototype only)
           </div>
-          <div className="mt-3 flex gap-2">
-            <input
-              className="flex-1 rounded border p-2 text-sm"
-              placeholder="Ask SwiftBot..."
-            />
-            <button className="rounded bg-blue-600 px-3 py-2 text-sm text-white">
-              Send
-            </button>
-          </div>
         </div>
       )}
       <button
@@ -88,8 +87,24 @@ function SwiftBot() {
   );
 }
 
-// ------------------------- Components & Pages -------------------------
-function Header() {
+// ------------------------- Auth Hook -------------------------
+function useAuthListener() {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, []);
+  return user;
+}
+
+// ------------------------- Header -------------------------
+function Header({ user }: { user: User | null }) {
+  const navigate = useNavigate();
+  function handleLogout() {
+    signOut(auth);
+    navigate("/");
+  }
+
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 p-4">
@@ -108,331 +123,172 @@ function Header() {
           <Link to="/properties" className="text-sm hover:underline">
             Explore
           </Link>
-          <Link
-            to="/admin"
-            className="rounded border px-3 py-1 text-sm hover:bg-gray-100"
-          >
-            Admin
-          </Link>
-          <Link
-            to="/login"
-            className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-          >
-            Login
-          </Link>
+          {user ? (
+            <>
+              <Link
+                to="/dashboard"
+                className="rounded border px-3 py-1 text-sm hover:bg-gray-100"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/admin"
+                className="rounded border px-3 py-1 text-sm hover:bg-gray-100"
+              >
+                Admin
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="rounded bg-red-600 px-3 py-1 text-sm text-white"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+            >
+              Login
+            </Link>
+          )}
         </nav>
       </div>
     </header>
   );
 }
 
-// ------------------------- Home Page -------------------------
-function Home() {
+// ------------------------- Login Page -------------------------
+function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const [maxPrice, setMaxPrice] = useState<number | "">("");
 
-  const featured = properties.slice(0, 3);
-
-  function onSearch(e: React.FormEvent) {
+  async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
-    const q = encodeURIComponent(query);
-    navigate(`/properties?q=${q}&maxPrice=${maxPrice}`);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate("/dashboard");
+    } catch {
+      alert("Login failed. Try signing up.");
+    }
+  }
+
+  async function handleSignup() {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      navigate("/dashboard");
+    } catch {
+      alert("Signup failed.");
+    }
+  }
+
+  async function handleGoogle() {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      navigate("/dashboard");
+    } catch {
+      alert("Google sign-in failed.");
+    }
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
-      <section className="rounded-lg bg-gradient-to-r from-indigo-600 to-blue-500 p-10 text-white">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-4xl font-bold">Hello SwiftStay Nigeria 🚀</h1>
-            <p className="mt-2 max-w-xl">
-              Find trusted short-stays and hotels across Enugu and the Southeast.
-            </p>
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={() => navigate("/properties")}
-                className="rounded bg-white/90 px-4 py-2 font-semibold text-indigo-700"
-              >
-                Explore Prototype
-              </button>
-              <button
-                onClick={() => navigate("/properties")}
-                className="rounded border px-4 py-2"
-              >
-                Book a Stay
-              </button>
-            </div>
-          </div>
-          <form
-            onSubmit={onSearch}
-            className="mt-4 w-full lg:mt-0 lg:max-w-md"
-          >
-            <div className="flex gap-2">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Location (e.g. Enugu)"
-                className="w-full rounded p-3"
-              />
-              <input
-                value={maxPrice}
-                onChange={(e) =>
-                  setMaxPrice(e.target.value === "" ? "" : Number(e.target.value))
-                }
-                placeholder="Max ₦"
-                className="w-28 rounded p-3"
-              />
-              <button
-                type="submit"
-                className="rounded bg-indigo-700 px-4 py-2 text-white"
-              >
-                Search
-              </button>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">Featured Properties</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {featured.map((p) => (
-            <article key={p.id} className="rounded border p-3">
-              <img
-                src={p.images[0]}
-                alt={p.name}
-                className="h-40 w-full rounded object-cover"
-              />
-              <div className="mt-2 flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{p.name}</h3>
-                  <div className="text-sm text-gray-500">{p.location}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold">{currency(p.pricePerNight)}</div>
-                  <button
-                    onClick={() => navigate(`/property/${p.id}`)}
-                    className="mt-2 rounded bg-indigo-600 px-3 py-1 text-sm text-white"
-                  >
-                    View Details
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-// ------------------------- Properties Page -------------------------
-function PropertiesPage() {
-  const navigate = useNavigate();
-  const searchParams = new URLSearchParams(window.location.search);
-  const query = searchParams.get("q")?.toLowerCase() || "";
-  const maxPrice = Number(searchParams.get("maxPrice")) || Infinity;
-
-  const filtered = properties.filter((p) => {
-    const matchesQuery =
-      p.name.toLowerCase().includes(query) ||
-      p.location.toLowerCase().includes(query);
-    const matchesPrice = p.pricePerNight <= maxPrice;
-    return matchesQuery && matchesPrice;
-  });
-
-  return (
-    <main className="mx-auto max-w-6xl p-6">
-      <h1 className="text-2xl font-bold">Available Properties</h1>
-      {filtered.length === 0 ? (
-        <p className="mt-4 text-gray-600">No properties found.</p>
-      ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
-            <article key={p.id} className="rounded border p-3">
-              <img
-                src={p.images[0]}
-                alt={p.name}
-                className="h-40 w-full rounded object-cover"
-              />
-              <div className="mt-2 flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{p.name}</h3>
-                  <div className="text-sm text-gray-500">{p.location}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold">{currency(p.pricePerNight)}</div>
-                  <button
-                    onClick={() => navigate(`/property/${p.id}`)}
-                    className="mt-2 rounded bg-indigo-600 px-3 py-1 text-sm text-white"
-                  >
-                    View Details
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </main>
-  );
-}
-
-// ------------------------- Property Details -------------------------
-function PropertyDetails() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const property = properties.find((p) => p.id === id);
-
-  if (!property) return <div className="p-6">Property not found</div>;
-
-  return (
-    <main className="mx-auto max-w-4xl p-6">
-      <h1 className="text-2xl font-bold">{property.name}</h1>
-      <div className="text-gray-600">{property.location}</div>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {property.images.map((src, i) => (
-          <img key={i} src={src} alt="" className="rounded object-cover" />
-        ))}
-      </div>
-      <p className="mt-4">{property.description}</p>
-      <div className="mt-2 font-bold">
-        {currency(property.pricePerNight)} / night
-      </div>
-      <button
-        onClick={() => navigate(`/booking/${property.id}`)}
-        className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
-      >
-        Book Now
-      </button>
-    </main>
-  );
-}
-
-// ------------------------- Booking Page -------------------------
-function BookingPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const property = properties.find((p) => p.id === id);
-
-  const [nights, setNights] = useState(1);
-
-  if (!property) return <div className="p-6">Booking not available</div>;
-
-  const total = nights * property.pricePerNight;
-
-  function handleBooking(e: React.FormEvent) {
-    e.preventDefault();
-    navigate(`/confirmation/${property.id}?nights=${nights}`);
-  }
-
-  return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1 className="text-xl font-bold">Book {property.name}</h1>
-      <form onSubmit={handleBooking} className="mt-4 space-y-4">
-        <div>
-          <label className="block text-sm">Nights</label>
-          <input
-            type="number"
-            min="1"
-            value={nights}
-            onChange={(e) => setNights(Number(e.target.value))}
-            className="w-full rounded border p-2"
-          />
-        </div>
-        <div className="font-semibold">Total: {currency(total)}</div>
+    <main className="mx-auto max-w-sm p-6">
+      <h1 className="text-2xl font-bold mb-4">Login / Sign up</h1>
+      <form onSubmit={handleEmailLogin} className="space-y-3">
+        <input
+          className="w-full rounded border p-2"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          className="w-full rounded border p-2"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button className="w-full rounded bg-blue-600 px-4 py-2 text-white">
+          Login
+        </button>
         <button
-          type="submit"
-          className="rounded bg-blue-600 px-4 py-2 text-white"
+          type="button"
+          onClick={handleSignup}
+          className="w-full rounded border px-4 py-2"
         >
-          Proceed to Payment
+          Sign Up
+        </button>
+        <button
+          type="button"
+          onClick={handleGoogle}
+          className="w-full rounded bg-red-500 px-4 py-2 text-white"
+        >
+          Continue with Google
         </button>
       </form>
     </main>
   );
 }
 
-// ------------------------- Confirmation Page -------------------------
-function ConfirmationPage() {
-  const { id } = useParams();
-  const query = new URLSearchParams(window.location.search);
-  const nights = Number(query.get("nights") || "1");
+// ------------------------- Protected Routes -------------------------
+function PrivateRoute({ user, children }: { user: User | null; children: JSX.Element }) {
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+function AdminRoute({ user, children }: { user: User | null; children: JSX.Element }) {
+  const ADMIN_EMAIL = "youremail@example.com"; // replace with your real admin email
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.email !== ADMIN_EMAIL) return <div className="p-6">🚫 Access Denied</div>;
+  return children;
+}
 
-  const property = properties.find((p) => p.id === id);
-
-  if (!property) return <p className="p-6">Property not found</p>;
-
+// ------------------------- Pages -------------------------
+function DashboardPage({ user }: { user: User }) {
   return (
-    <main className="mx-auto max-w-2xl p-6 text-center">
-      <h1 className="text-2xl font-bold text-green-600">
-        Booking Confirmed 🎉
-      </h1>
-      <p className="mt-2">
-        You booked <strong>{property.name}</strong> in {property.location}.
-      </p>
-      <p className="mt-1">
-        Nights: {nights} | Total:{" "}
-        <strong>{currency(nights * property.pricePerNight)}</strong>
-      </p>
-      <p className="mt-4 text-gray-600">
-        This is a prototype — payment integration coming soon.
-      </p>
-      <Link
-        to="/properties"
-        className="mt-6 inline-block rounded bg-indigo-600 px-4 py-2 text-white"
-      >
-        Back to Explore
-      </Link>
-    </main>
+    <div className="p-6">
+      <h1 className="text-xl font-bold">Welcome {user.email}</h1>
+      <p className="mt-2 text-gray-600">This is your dashboard.</p>
+    </div>
   );
-}
-
-// ------------------------- Placeholders -------------------------
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <main className="flex min-h-[60vh] items-center justify-center">
-      <div className="rounded-lg border bg-white p-8 text-center shadow">
-        <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
-        <p className="mt-2 text-gray-600">
-          🚧 This feature is under development. Stay tuned!
-        </p>
-        <Link
-          to="/"
-          className="mt-6 inline-block rounded bg-indigo-600 px-4 py-2 text-white"
-        >
-          Back Home
-        </Link>
-      </div>
-    </main>
-  );
-}
-
-function LoginPage() {
-  return <ComingSoon title="Login Page" />;
-}
-function DashboardPage() {
-  return <ComingSoon title="User Dashboard" />;
 }
 function AdminDashboard() {
-  return <ComingSoon title="Admin Dashboard" />;
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+      <p className="mt-2">Manage properties and users here.</p>
+    </div>
+  );
 }
 
 // ------------------------- Root App -------------------------
 export default function App() {
+  const user = useAuthListener();
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <Header user={user} />
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/properties" element={<PropertiesPage />} />
-          <Route path="/property/:id" element={<PropertyDetails />} />
-          <Route path="/booking/:id" element={<BookingPage />} />
-          <Route path="/confirmation/:id" element={<ConfirmationPage />} />
+          <Route path="/" element={<div className="p-6">🏠 Home Page</div>} />
+          <Route path="/properties" element={<div className="p-6">Properties</div>} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute user={user}>
+                <DashboardPage user={user as User} />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute user={user}>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
         </Routes>
         <SwiftBot />
       </div>
