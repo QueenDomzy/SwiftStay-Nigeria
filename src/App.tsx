@@ -238,10 +238,53 @@ function PrivateRoute({ user, children }: { user: User | null; children: JSX.Ele
   return children;
 }
 function AdminRoute({ user, children }: { user: User | null; children: JSX.Element }) {
-  const ADMIN_EMAIL = "youremail@example.com"; // replace with your real admin email
+  const ADMIN_EMAIL = "youremail@example.com"; // replace with real admin email
   if (!user) return <Navigate to="/login" replace />;
   if (user.email !== ADMIN_EMAIL) return <div className="p-6">🚫 Access Denied</div>;
   return children;
+}
+
+// ------------------------- Booking & Confirmation -------------------------
+function PropertyDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const property = properties.find((p) => p.id === id);
+  if (!property) return <div className="p-6">Property not found</div>;
+  return (
+    <main className="p-6">
+      <h1 className="text-2xl font-bold">{property.name}</h1>
+      <p>{property.description}</p>
+      <div className="mt-2 font-semibold">{currency(property.pricePerNight)} / night</div>
+      <button
+        onClick={() => navigate(`/booking/${property.id}`)}
+        className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
+      >
+        Book Now
+      </button>
+    </main>
+  );
+}
+function BookingPage() {
+  const { id } = useParams();
+  const property = properties.find((p) => p.id === id);
+  if (!property) return <div className="p-6">Booking not available</div>;
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold">Booking {property.name}</h1>
+      <p className="mt-2">Prototype booking flow — payment integration coming soon 🚀</p>
+    </div>
+  );
+}
+function ConfirmationPage() {
+  const { id } = useParams();
+  const property = properties.find((p) => p.id === id);
+  if (!property) return <div className="p-6">Property not found</div>;
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-green-600">Booking Confirmed 🎉</h1>
+      <p>You booked {property.name}!</p>
+    </div>
+  );
 }
 
 // ------------------------- Pages -------------------------
@@ -271,8 +314,27 @@ export default function App() {
         <Header user={user} />
         <Routes>
           <Route path="/" element={<div className="p-6">🏠 Home Page</div>} />
-          <Route path="/properties" element={<div className="p-6">Properties</div>} />
+          <Route path="/properties" element={<div className="p-6">Properties List</div>} />
+          <Route path="/property/:id" element={<PropertyDetails />} />
           <Route path="/login" element={<LoginPage />} />
+          
+          {/* Protected Routes */}
+          <Route
+            path="/booking/:id"
+            element={
+              <PrivateRoute user={user}>
+                <BookingPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/confirmation/:id"
+            element={
+              <PrivateRoute user={user}>
+                <ConfirmationPage />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
